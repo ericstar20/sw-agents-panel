@@ -1,0 +1,38 @@
+@use '../../../../shared/styles/panels';
+@include panels.panel;
+
+:host {
+  display: block;
+}
+.details {
+  padding-bottom: 24px;
+  h3,
+  ul,
+  > .muted {
+    margin-left: 24px;
+    margin-right: 24px;
+  }
+}
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  padding: 0 24px 20px;
+  span,
+  strong {
+    display: block;
+  }
+  span {
+    color: var(--muted);
+    font-size: 12px;
+  }
+  strong {
+    margin-top: 8px;
+    font-weight: 500;
+  }
+}
+@media (max-width: 700px) {
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+}

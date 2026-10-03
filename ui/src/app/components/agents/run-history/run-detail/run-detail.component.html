@@ -1,0 +1,51 @@
+@let currentRun = run();
+<section class="panel details" aria-label="Run details">
+  <div class="panel-heading">
+    <div>
+      <p class="eyebrow">
+        RUN DETAILS
+        @if (currentRun.sample) {
+          · SAMPLE
+        }
+      </p>
+      <h2>{{ currentRun.task }}</h2>
+    </div>
+    <button mat-button (click)="closed.emit()">Close</button>
+  </div>
+  <div class="detail-grid">
+    <div>
+      <span>First response</span>
+      <strong>
+        {{
+          currentRun.first_response_ms === null
+            ? 'Unknown'
+            : currentRun.first_response_ms / 1000 + ' s'
+        }}
+      </strong>
+    </div>
+    <div>
+      <span>Cache tokens</span>
+      <strong>
+        {{ currentRun.cached_tokens === null ? 'Unknown' : (currentRun.cached_tokens | number) }}
+      </strong>
+    </div>
+    <div>
+      <span>Usage scope</span>
+      <strong>{{ currentRun.usage_scope ?? 'Unknown' }}</strong>
+    </div>
+  </div>
+  <h3>Actions taken</h3>
+  <ul>
+    @for (event of actions(); track event.id) {
+      @if (event.type === 'action' && event.payload.description) {
+        <li>
+          {{ event.payload.description }}
+          <span class="muted">· {{ event.payload.outcome ?? 'Unknown outcome' }}</span>
+        </li>
+      }
+    }
+  </ul>
+  @if (!actions().length) {
+    <p class="muted">No recorded actions</p>
+  }
+</section>

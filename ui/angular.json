@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "projects": {
+    "dashboard": {
+      "projectType": "application",
+      "root": "",
+      "sourceRoot": "src",
+      "architect": {
+        "build": {
+          "builder": "@angular/build:application",
+          "options": {
+            "browser": "src/main.ts",
+            "tsConfig": "tsconfig.json",
+            "index": "src/index.html",
+            "styles": ["src/styles.scss"],
+            "outputPath": "dist/dashboard",
+            "assets": [
+              {
+                "glob": "**/*",
+                "input": "public"
+              }
+            ]
+          }
+        },
+        "serve": {
+          "builder": "@angular/build:dev-server",
+          "options": {
+            "buildTarget": "dashboard:build"
+          }
+        }
+      }
+    }
+  }
+}

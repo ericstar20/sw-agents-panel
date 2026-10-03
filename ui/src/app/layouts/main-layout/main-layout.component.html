@@ -1,0 +1,26 @@
+<aside>
+  <a class="brand" routerLink="/overview">
+    <span class="brand-logo" aria-hidden="true">
+      <img src="/images/sw-logo.png" alt="" width="88" height="88" />
+    </span>
+    <span>Local Agents</span>
+  </a>
+  <div class="workspace">PERSONAL WORKSPACE</div>
+  <nav aria-label="Main navigation">
+    <a mat-button routerLink="/overview" routerLinkActive="active">▦ &nbsp; Overview</a>
+  </nav>
+  <div class="aside-bottom">
+    <span class="dot"></span>
+    Localhost only
+    <br />
+    <small>Your activity stays on this machine.</small>
+  </div>
+</aside>
+<main>
+  <header>
+    <span>Workspace / Overview</span>
+    <mat-chip>Local dashboard</mat-chip>
+  </header>
+  <router-outlet />
+  <footer>Local Agents · Angular + Python + SQLite</footer>
+</main>

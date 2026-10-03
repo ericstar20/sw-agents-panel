@@ -1,0 +1,43 @@
+@use '@angular/material' as mat;
+
+html {
+  @include mat.theme(
+    (
+      color: (
+        primary: mat.$azure-palette,
+        tertiary: mat.$blue-palette,
+        theme-type: color-scheme,
+      ),
+      typography: Arial,
+      density: -1,
+    )
+  );
+}
+
+:root {
+  color-scheme: dark;
+  --bg: #101318;
+  --surface: #191d24;
+  --line: #2b313a;
+  --text: #edf1f7;
+  --muted: #9aa6b7;
+  --accent: #9bafff;
+  --soft: #252d49;
+  --success: #98dcc0;
+  --notice: #24241e;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: light;
+    --bg: #f6f7fa;
+    --surface: #fff;
+    --line: #e0e5ec;
+    --text: #222b3b;
+    --muted: #616e80;
+    --accent: #415bc2;
+    --soft: #edf0fc;
+    --success: #247353;
+    --notice: #faf8ef;
+  }
+}

@@ -1,0 +1,141 @@
+<div class="heading">
+  <div>
+    <p class="eyebrow">AGENT ACTIVITY</p>
+    <h1>Your agents, at a glance.</h1>
+    <p>Review runs, inspect actions, and understand resource usage.</p>
+  </div>
+  <button
+    mat-fab
+    class="refresh-fab"
+    (click)="load()"
+    [disabled]="loading()"
+    [attr.aria-label]="loading() ? 'Loading run history' : 'Refresh run history'"
+    matTooltip="Refresh run history"
+  >
+    <mat-icon aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="currentColor" focusable="false">
+        <path
+          d="M17.65 6.35A7.95 7.95 0 0 0 12 4a8 8 0 1 0 7.75 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4z"
+        />
+      </svg>
+    </mat-icon>
+  </button>
+</div>
+<div class="notice">
+  <span class="dot amber"></span>
+  Live collection is not connected yet.
+  {{
+    hasSamples()
+      ? 'Sample runs are labeled below.'
+      : 'Recorded runs will appear here once an integration is connected.'
+  }}
+</div>
+@if (error()) {
+  <div class="error" role="alert">
+    {{ error() }}
+    <button mat-button (click)="load()">Retry</button>
+  </div>
+}
+<section class="stats" aria-label="Run summary">
+  <mat-card appearance="outlined">
+    <span>Recorded runs</span>
+    <strong>{{ runs().length }}</strong>
+    <small>Latest 200 runs · includes samples</small>
+  </mat-card>
+  <mat-card appearance="outlined">
+    <span>Active runs</span>
+    <strong>{{ activeCount() }}</strong>
+    <small>Currently recorded as running</small>
+  </mat-card>
+  <mat-card appearance="outlined">
+    <span>Completed runs</span>
+    <strong>{{ completedCount() }}</strong>
+    <small>Completion is not a quality score</small>
+  </mat-card>
+</section>
+<section class="panel">
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate" />
+  }
+  <div class="panel-heading">
+    <div>
+      <h2>Run history</h2>
+      <p>Select a run to inspect its recorded activity.</p>
+    </div>
+    <div class="status-filters" role="group" aria-label="Filter runs by status">
+      @for (status of statuses; track status.value) {
+        <button
+          mat-button
+          type="button"
+          [class.selected]="filter() === status.value"
+          [attr.aria-pressed]="filter() === status.value"
+          (click)="filter.set(status.value)"
+        >
+          {{ status.label }}
+        </button>
+      }
+    </div>
+  </div>
+  @if (!loading() && !runs().length) {
+    <div class="empty">
+      <span>◈</span>
+      <h3>Ready for your first run</h3>
+      <p>No sessions have been recorded. You can load the optional demo to preview this view.</p>
+    </div>
+  } @else {
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Agent / task</th>
+            <th>Provider / model</th>
+            <th>Status</th>
+            <th>Duration</th>
+            <th>Tokens in / out</th>
+            <th>Started</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (run of filtered(); track run.id) {
+            <tr>
+              <td>
+                <button mat-button class="run-link" (click)="open(run.id)">
+                  {{ run.agent_name }}
+                </button>
+                @if (run.sample) {
+                  <span class="sample">SAMPLE</span>
+                }
+                <small>{{ run.task }}</small>
+                <small>{{ run.tool }} · {{ run.ownership }} · {{ run.project }}</small>
+              </td>
+              <td>
+                {{ run.provider ?? 'Unknown' }}
+                <small>{{ run.model ?? 'Unknown model' }}</small>
+              </td>
+              <td>
+                <span class="status" [class.complete]="run.status === 'completed'">
+                  {{ run.status }}
+                </span>
+              </td>
+              <td>{{ run | runDuration }}</td>
+              <td>
+                {{ run.input_tokens === null ? 'Unknown' : (run.input_tokens | number) }} /
+                {{ run.output_tokens === null ? 'Unknown' : (run.output_tokens | number) }}
+              </td>
+              <td>{{ run.started_at | date: 'MMM d, h:mm a' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      @if (!filtered().length && runs().length) {
+        <p class="empty">No runs match this status.</p>
+      }
+    </div>
+  }
+</section>
+@if (detailLoading()) {
+  <p role="status">Loading run details…</p>
+}
+@if (selected(); as run) {
+  <app-run-detail [run]="run" (closed)="selected.set(null)" />
+}
