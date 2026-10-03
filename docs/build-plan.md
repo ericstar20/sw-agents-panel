@@ -30,12 +30,12 @@ Build a local dashboard that shows what AI agents did, how long they took, and h
 
 ## Build Order
 
-| Step | Deliverable                                                                                               | Status                                                                                                                    |
-| ---- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| 1    | Local Angular dashboard, Python API, and SQLite storage.                                                  | Complete: run list, status filters, run details, labeled sample data, and persistence.                                    |
-| 2    | Codex terminal launch integration, automatic dashboard opening, and real interactive activity collection. | In progress: Codex path discovery, controller, and zsh launch hook implemented; session analytics ingestion remains next. |
-| 3    | History filters, cleanup, storage warning, and Settings page.                                             | Pending; basic run history and status filtering are available.                                                            |
-| 4    | Claude Code interactive collection and automatic dashboard opening, plus provider comparison.             | Pending.                                                                                                                  |
+| Step | Deliverable                                                                                               | Status                                                                                                                                                        |
+| ---- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Local Angular dashboard, Python API, and SQLite storage.                                                  | Complete: run list, status filters, run details, labeled sample data, and persistence.                                                                        |
+| 2    | Codex terminal launch integration, automatic dashboard opening, and real interactive activity collection. | In progress: Codex path discovery, controller, and zsh launch hook implemented; incremental local session collection and three-second UI polling implemented. |
+| 3    | History filters, cleanup, storage warning, and Settings page.                                             | Pending; basic run history and status filtering are available.                                                                                                |
+| 4    | Claude Code interactive collection and automatic dashboard opening, plus provider comparison.             | Pending.                                                                                                                                                      |
 
 ## Current Implementation
 
@@ -43,9 +43,9 @@ Build a local dashboard that shows what AI agents did, how long they took, and h
 - **API:** read-only health, agent, run-list, and run-detail endpoints; SQLite storage; optional, explicitly labeled demo seed.
 - **UI:** Angular Material dashboard, icon-only Refresh FAB, compact status filters, run details, supplied logo, and system theme support.
 - **Structure:** `api/` and `ui/`; Angular follows `sw-app-admin` with layouts, feature components/models/services, shared utilities, and theme styles.
-- **Verification:** Angular build, twelve persistence, discovery, and launch tests, formatting checks, and API endpoint checks pass. Browser visual verification remains outstanding. Dependency audit reports nine high-severity development-tool findings.
+- **Verification:** Angular build, fifteen persistence, collection, discovery, and launch tests, formatting checks, and API endpoint checks pass. Browser visual verification remains outstanding. Dependency audit reports nine high-severity development-tool findings.
 
-Real agent analytics are not connected yet. The controller now discovers Codex configuration and session folders, exposes configured model/provider metadata, and counts session files. Session contents are not imported yet. Foblex Flow remains planned for the workflow view. A custom font is pending selection.
+Local Codex session analytics are connected. The controller now discovers Codex configuration and session folders, exposes configured model/provider metadata, and counts session files. A metadata-only incremental reader imports session status, reported model/provider, cumulative usage, and tool invocation names; it leaves conversations and command arguments out of SQLite. Foblex Flow remains planned for the workflow view. A custom font is pending selection.
 
 ## Next: Real Codex Analytics
 
@@ -80,4 +80,4 @@ Choose and verify each tool's interactive collection mechanism during implementa
 | Codex CLI   | Verify supported interactive session activity sources and configuration locations before implementing its adapter. |
 | Claude Code | Verify supported interactive session activity sources and configuration locations before implementing its adapter. |
 
-The local dashboard, read-only API, and SQLite foundation are implemented. Interactive CLI launch and collection integrations remain to be built. The README retains the broader project requirements.
+The local dashboard, read-only API, and SQLite foundation are implemented. Codex interactive CLI launch and local session collection are implemented; Claude Code collection remains pending. The README retains the broader project requirements.

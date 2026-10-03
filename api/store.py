@@ -30,6 +30,9 @@ class Store:
                     tool TEXT NOT NULL, home TEXT NOT NULL,
                     project TEXT, profile TEXT, PRIMARY KEY (tool, home));
                 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS collection_checkpoints (
+                    path TEXT PRIMARY KEY, identity TEXT NOT NULL, offset INTEGER NOT NULL,
+                    state TEXT NOT NULL);
                 INSERT OR IGNORE INTO settings VALUES ('storage_warning_bytes', '100000000');
             """)
 
@@ -88,6 +91,45 @@ class Store:
                 dict(row)
                 for row in db.execute("SELECT * FROM integration_sources ORDER BY tool, home")
             ]
+
+    @staticmethod
+    def save_session(db, state, events):
+        """Upsert session analytics in the same transaction as its import checkpoint."""
+        db.execute(
+            "INSERT OR IGNORE INTO agents VALUES (?, ?, 'codex', 'third-party', 0)",
+            (state["agent_id"], state["name"]),
+        )
+        fields = [
+            "id",
+            "agent_id",
+            "task",
+            "project",
+            "status",
+            "started_at",
+            "finished_at",
+            "provider",
+            "model",
+            "first_response_ms",
+            "input_tokens",
+            "output_tokens",
+            "cached_tokens",
+        ]
+        assignments = ", ".join(f"{field}=excluded.{field}" for field in fields[2:])
+        db.execute(
+            f"INSERT INTO runs ({', '.join(fields)}, usage_scope, sample) "
+            f"VALUES ({', '.join('?' for _ in fields)}, 'session', 0) "
+            f"ON CONFLICT(id) DO UPDATE SET {assignments}",
+            [state.get(field) for field in fields],
+        )
+        # Deduplicate replayed records after file replacement or archival.
+        for timestamp, payload in events:
+            encoded = json.dumps(payload)
+            db.execute(
+                "INSERT INTO events (run_id, timestamp, type, payload) "
+                "SELECT ?, ?, 'action', ? WHERE NOT EXISTS "
+                "(SELECT 1 FROM events WHERE run_id=? AND timestamp=? AND payload=?)",
+                (state["id"], timestamp, encoded, state["id"], timestamp, encoded),
+            )
 
     def seed_demo(self):
         """Explicit, repeatable sample loading; never pretend these are real sessions."""

@@ -9,7 +9,7 @@ npm --prefix ui ci
 npm start
 ```
 
-Open http://127.0.0.1:4200. The Python API listens on port 8765 and SQLite data lives in `data/dashboard.sqlite3`. The dashboard starts empty; live CLI collection is not connected yet.
+Open http://127.0.0.1:4200. The Python API listens on port 8765 and SQLite data lives in `data/dashboard.sqlite3`. The dashboard imports local Codex sessions on API refresh and updates the view every three seconds. New sessions show a notification while the page is open.
 
 To load a clearly labeled sample run, use `npm start -- --demo`. Sample data persists across restarts. Stop both services with Ctrl+C.
 
@@ -34,9 +34,9 @@ The installer appends a source line to `.zshrc` and preserves a backup at `.zshr
 
 Terminal mode uses the built Angular UI and Python API in one background service; `npm start` remains the development workflow on ports 4200/8765. Rebuild after UI changes. Service output is in `data/dashboard.log`.
 
-Path discovery respects `CODEX_HOME` (default `~/.codex`), selected profile files, and the launch project's `.codex/config.toml` location. It reports configured model/provider metadata and counts session files without reading credentials or transcripts. These are configuration defaults, not proof of a run's effective model or provider. Project settings are located but not applied by the dashboard because Codex's trust and override rules remain authoritative. Expand **Agent configuration and paths** to inspect discovery results.
+Path discovery respects `CODEX_HOME` (default `~/.codex`), selected profile files, and the launch project's `.codex/config.toml` location. It reports configured model/provider metadata and counts session files without reading credentials. The activity collector reads local session JSONL records, but stores only session IDs, project paths, reported model/provider metadata, statuses, cumulative token metrics, and tool invocation names. It does not store prompts, responses, tool arguments, or tool output. These are configuration defaults, not proof of a run's effective model or provider. Project settings are located but not applied by the dashboard because Codex's trust and override rules remain authoritative. Expand **Agent configuration and paths** to inspect discovery results.
 
-Real session analytics ingestion and Claude Code launch integration remain pending. To remove the terminal hook, remove the marked two-line block from `.zshrc` and open a new terminal.
+Codex session analytics are connected; Claude Code integration remains pending. Each entry represents one session, including resumed turns. Status reflects the latest recorded turn, not whether the CLI process is still alive. Token totals have session scope; cached input tokens are part of input usage. Duration spans session creation through the latest completed turn and includes idle time. First-response time remains unknown for session aggregates. Sessions with no completion event retain their recorded status. Both active and archived session folders are imported, with persistent checkpoints to avoid duplicate runs and usage. Unknown record types are ignored; the rollout format is version-dependent. A session appears when Codex writes its metadata (usually after the first prompt), rather than immediately when the terminal process starts. To remove the terminal hook, remove the marked two-line block from `.zshrc` and open a new terminal.
 
 ## Angular Structure
 

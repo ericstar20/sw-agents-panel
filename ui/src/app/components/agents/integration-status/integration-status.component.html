@@ -15,8 +15,8 @@
           {{ integration.configured_provider ?? 'Not explicitly configured' }}
         </p>
         <p>
-          {{ integration.session_file_count ?? 'Unknown' }} session files found. Analytics
-          collection is not connected yet.
+          {{ integration.session_file_count ?? 'Unknown' }} session files found. Local session
+          collection is connected.
         </p>
         <dl>
           @for (entry of integration.paths | keyvalue; track entry.key) {

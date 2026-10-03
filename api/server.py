@@ -8,12 +8,14 @@ from pathlib import Path
 from urllib.parse import urlsplit, unquote
 from api.store import Store
 from api.controller import IntegrationController
+from api.integrations.collector import SessionCollector
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def make_handler(store, ui_root=None):
     controller = IntegrationController(store)
+    collector = SessionCollector(store)
     ui_root = Path(ui_root).resolve() if ui_root else None
 
     class Handler(BaseHTTPRequestHandler):
@@ -22,18 +24,26 @@ def make_handler(store, ui_root=None):
             if path == "/api/health":
                 result = {
                     "status": "ok",
-                    "collection": "not_connected",
+                    "collection": "local_sessions",
+                    "version": 2,
                     "app": "sw-agents-panel",
                     "project_root": str(ROOT),
                     "serves_ui": ui_root is not None,
                 }
             elif path == "/api/integrations":
+                collector.collect()
                 result = controller.discover()
+                for integration in result:
+                    integration["collection"] = "local_sessions"
+                    integration["errors"].extend(collector.errors)
             elif path == "/api/agents":
+                collector.collect()
                 result = store.agents()
             elif path == "/api/runs":
+                collector.collect()
                 result = store.runs()
             elif path.startswith("/api/runs/"):
+                collector.collect()
                 result = store.detail(unquote(path[len("/api/runs/") :]))
                 if result is None:
                     return self.send_json({"error": "Run not found"}, 404)

@@ -23,12 +23,10 @@
 </div>
 <div class="notice">
   <span class="dot amber"></span>
-  Live collection is not connected yet.
-  {{
-    hasSamples()
-      ? 'Sample runs are labeled below.'
-      : 'Recorded runs will appear here once an integration is connected.'
-  }}
+  Local Codex sessions refresh every 3 seconds. Status reflects the latest recorded turn.
+  @if (hasSamples()) {
+    Sample runs are labeled below.
+  }
 </div>
 <app-integration-status />
 @if (error()) {
@@ -51,7 +49,7 @@
   <mat-card appearance="outlined">
     <span>Completed runs</span>
     <strong>{{ completedCount() }}</strong>
-    <small>Completion is not a quality score</small>
+    <small>Latest turn completed · not a quality score</small>
   </mat-card>
 </section>
 <section class="panel">
@@ -81,7 +79,7 @@
     <div class="empty">
       <span>◈</span>
       <h3>Ready for your first run</h3>
-      <p>No sessions have been recorded. You can load the optional demo to preview this view.</p>
+      <p>Launch Codex and send a prompt. Your local session will appear automatically.</p>
     </div>
   } @else {
     <div class="table-wrap">
@@ -134,6 +132,9 @@
     </div>
   }
 </section>
+@if (detailError()) {
+  <p class="error" role="alert">{{ detailError() }}</p>
+}
 @if (detailLoading()) {
   <p role="status">Loading run details…</p>
 }
