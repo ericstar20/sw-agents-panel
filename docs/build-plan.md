@@ -6,7 +6,7 @@ Build a local dashboard that shows what AI agents did, how long they took, and h
 
 | Component              | Choice                                                                                                                                                                 |
 | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| UI                     | Angular.                                                                                                                                                               |
+| UI                     | Angular with [Angular Material](https://material.angular.dev/) components.                                                                                             |
 | Workflow visualization | [Foblex Flow](https://flow.foblex.com/) (`@foblex/flow`) for the Angular agent workflow view.                                                                          |
 | Backend                | Python with a JSON API.                                                                                                                                                |
 | Integration controller | Python controller with separate tool adapters for configuration discovery and interactive activity collection. Record provider and model separately from the CLI tool. |
@@ -30,12 +30,30 @@ Build a local dashboard that shows what AI agents did, how long they took, and h
 
 ## Build Order
 
-| Step | Deliverable                                                                                                                                           |
-| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1    | Local Angular dashboard, Python API, and SQLite storage.                                                                                              |
-| 2    | Codex terminal launch integration, automatic dashboard opening, and real interactive activity collection with action summaries and available metrics. |
-| 3    | History, cleanup, storage warning, and Settings page.                                                                                                 |
-| 4    | Claude Code interactive collection and terminal launch integration with the same automatic dashboard behavior, plus provider comparison.              |
+| Step | Deliverable                                                                                               | Status                                                                                 |
+| ---- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| 1    | Local Angular dashboard, Python API, and SQLite storage.                                                  | Complete: run list, status filters, run details, labeled sample data, and persistence. |
+| 2    | Codex terminal launch integration, automatic dashboard opening, and real interactive activity collection. | Next: configuration discovery, controller, and Codex adapter.                          |
+| 3    | History filters, cleanup, storage warning, and Settings page.                                             | Pending; basic run history and status filtering are available.                         |
+| 4    | Claude Code interactive collection and automatic dashboard opening, plus provider comparison.             | Pending.                                                                               |
+
+## Current Implementation
+
+- **Infrastructure:** local startup script, dependency lockfile, Prettier and Ruff formatting commands.
+- **API:** read-only health, agent, run-list, and run-detail endpoints; SQLite storage; optional, explicitly labeled demo seed.
+- **UI:** Angular Material dashboard, icon-only Refresh FAB, compact status filters, run details, supplied logo, and system theme support.
+- **Structure:** `api/` and `ui/`; Angular follows `sw-app-admin` with layouts, feature components/models/services, shared utilities, and theme styles.
+- **Verification:** Angular build, three SQLite persistence tests, formatting checks, and API endpoint checks pass. Browser visual verification remains outstanding. Dependency audit reports nine high-severity development-tool findings.
+
+Real agent analytics are not connected yet. The API does not currently read local agent configuration or session folders. Foblex Flow remains planned for the workflow view. A custom font is pending selection.
+
+## Next: Real Codex Analytics
+
+1. Verify Codex's interactive configuration and session activity sources, including custom paths and project overrides.
+2. Add configuration discovery and a Python controller with tool adapters. Keep credentials out of stored analytics; prefer reported run provider/model over configuration defaults.
+3. Collect real session activity into SQLite, preserving usage scope, supported timing measurements, and evidence for action summaries. Mark unavailable fields unknown and avoid duplicate imports.
+4. Add terminal launch integration that starts or reuses local services and opens the dashboard while preserving interactive CLI arguments and behavior.
+5. Verify with a real interactive session, a resumed session, and simultaneous terminal sessions. Confirm persistence and absence of duplicate runs or usage.
 
 ## Resolved Integration Decisions
 
@@ -62,4 +80,4 @@ Choose and verify each tool's interactive collection mechanism during implementa
 | Codex CLI   | Verify supported interactive session activity sources and configuration locations before implementing its adapter. |
 | Claude Code | Verify supported interactive session activity sources and configuration locations before implementing its adapter. |
 
-This plan describes intended work. The dashboard and integrations have not been implemented yet. The README retains the broader project requirements.
+The local dashboard, read-only API, and SQLite foundation are implemented. Interactive CLI launch and collection integrations remain to be built. The README retains the broader project requirements.
