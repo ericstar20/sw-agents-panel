@@ -20,6 +20,24 @@ npm run build # Angular production build
 
 Source folders: `api/` contains Python persistence and API code; `ui/` contains the Angular dashboard with Angular Material. Foblex Flow is reserved for the planned workflow view.
 
+## Open the Dashboard When Codex Starts
+
+Build the UI once with `npm run build`, then install the zsh integration:
+
+```sh
+python3 scripts/install_terminal.py
+source ~/.zshrc
+codex
+```
+
+The installer appends a source line to `.zshrc` and preserves a backup at `.zshrc.sw-agents-panel.bak`. New terminals load it automatically. Existing terminals need the `source` command above. The hook starts or reuses the dashboard at http://127.0.0.1:8766/overview, opens it in your default browser, and invokes the original Codex CLI with your arguments and exit status preserved. Help/version and common non-interactive commands bypass dashboard startup. A dashboard failure prints a warning and still starts Codex.
+
+Terminal mode uses the built Angular UI and Python API in one background service; `npm start` remains the development workflow on ports 4200/8765. Rebuild after UI changes. Service output is in `data/dashboard.log`.
+
+Path discovery respects `CODEX_HOME` (default `~/.codex`), selected profile files, and the launch project's `.codex/config.toml` location. It reports configured model/provider metadata and counts session files without reading credentials or transcripts. These are configuration defaults, not proof of a run's effective model or provider. Project settings are located but not applied by the dashboard because Codex's trust and override rules remain authoritative. Expand **Agent configuration and paths** to inspect discovery results.
+
+Real session analytics ingestion and Claude Code launch integration remain pending. To remove the terminal hook, remove the marked two-line block from `.zshrc` and open a new terminal.
+
 ## Angular Structure
 
 The UI follows the organization of `sw-app-admin`, using standalone components:

@@ -30,12 +30,12 @@ Build a local dashboard that shows what AI agents did, how long they took, and h
 
 ## Build Order
 
-| Step | Deliverable                                                                                               | Status                                                                                 |
-| ---- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| 1    | Local Angular dashboard, Python API, and SQLite storage.                                                  | Complete: run list, status filters, run details, labeled sample data, and persistence. |
-| 2    | Codex terminal launch integration, automatic dashboard opening, and real interactive activity collection. | Next: configuration discovery, controller, and Codex adapter.                          |
-| 3    | History filters, cleanup, storage warning, and Settings page.                                             | Pending; basic run history and status filtering are available.                         |
-| 4    | Claude Code interactive collection and automatic dashboard opening, plus provider comparison.             | Pending.                                                                               |
+| Step | Deliverable                                                                                               | Status                                                                                                                    |
+| ---- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| 1    | Local Angular dashboard, Python API, and SQLite storage.                                                  | Complete: run list, status filters, run details, labeled sample data, and persistence.                                    |
+| 2    | Codex terminal launch integration, automatic dashboard opening, and real interactive activity collection. | In progress: Codex path discovery, controller, and zsh launch hook implemented; session analytics ingestion remains next. |
+| 3    | History filters, cleanup, storage warning, and Settings page.                                             | Pending; basic run history and status filtering are available.                                                            |
+| 4    | Claude Code interactive collection and automatic dashboard opening, plus provider comparison.             | Pending.                                                                                                                  |
 
 ## Current Implementation
 
@@ -43,16 +43,16 @@ Build a local dashboard that shows what AI agents did, how long they took, and h
 - **API:** read-only health, agent, run-list, and run-detail endpoints; SQLite storage; optional, explicitly labeled demo seed.
 - **UI:** Angular Material dashboard, icon-only Refresh FAB, compact status filters, run details, supplied logo, and system theme support.
 - **Structure:** `api/` and `ui/`; Angular follows `sw-app-admin` with layouts, feature components/models/services, shared utilities, and theme styles.
-- **Verification:** Angular build, three SQLite persistence tests, formatting checks, and API endpoint checks pass. Browser visual verification remains outstanding. Dependency audit reports nine high-severity development-tool findings.
+- **Verification:** Angular build, twelve persistence, discovery, and launch tests, formatting checks, and API endpoint checks pass. Browser visual verification remains outstanding. Dependency audit reports nine high-severity development-tool findings.
 
-Real agent analytics are not connected yet. The API does not currently read local agent configuration or session folders. Foblex Flow remains planned for the workflow view. A custom font is pending selection.
+Real agent analytics are not connected yet. The controller now discovers Codex configuration and session folders, exposes configured model/provider metadata, and counts session files. Session contents are not imported yet. Foblex Flow remains planned for the workflow view. A custom font is pending selection.
 
 ## Next: Real Codex Analytics
 
-1. Verify Codex's interactive configuration and session activity sources, including custom paths and project overrides.
-2. Add configuration discovery and a Python controller with tool adapters. Keep credentials out of stored analytics; prefer reported run provider/model over configuration defaults.
+1. Path discovery is implemented for `CODEX_HOME`, user/profile configuration, session directories, and the launch project. Verify activity ingestion against the installed Codex session formats.
+2. Extend the existing Python controller and Codex discovery adapter with activity collection. Keep credentials out of stored analytics; prefer reported run provider/model over configuration defaults.
 3. Collect real session activity into SQLite, preserving usage scope, supported timing measurements, and evidence for action summaries. Mark unavailable fields unknown and avoid duplicate imports.
-4. Add terminal launch integration that starts or reuses local services and opens the dashboard while preserving interactive CLI arguments and behavior.
+4. The zsh launch hook starts or reuses a localhost service on port 8766 and opens the dashboard while preserving CLI arguments and behavior. Claude Code will use the same launcher later.
 5. Verify with a real interactive session, a resumed session, and simultaneous terminal sessions. Confirm persistence and absence of duplicate runs or usage.
 
 ## Resolved Integration Decisions

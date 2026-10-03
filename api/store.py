@@ -26,6 +26,9 @@ class Store:
                 CREATE TABLE IF NOT EXISTS events (
                     id INTEGER PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
                     timestamp TEXT NOT NULL, type TEXT NOT NULL, payload TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS integration_sources (
+                    tool TEXT NOT NULL, home TEXT NOT NULL,
+                    project TEXT, profile TEXT, PRIMARY KEY (tool, home));
                 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
                 INSERT OR IGNORE INTO settings VALUES ('storage_warning_bytes', '100000000');
             """)
@@ -70,6 +73,21 @@ class Store:
             for event in result["events"]:
                 event["payload"] = json.loads(event["payload"])
             return result
+
+    def register_source(self, tool, home, project=None, profile=None):
+        with self.connect() as db:
+            db.execute(
+                """INSERT INTO integration_sources (tool, home, project, profile) VALUES (?, ?, ?, ?)
+                ON CONFLICT(tool, home) DO UPDATE SET project=excluded.project, profile=excluded.profile""",
+                (tool, str(home), str(project) if project else None, profile),
+            )
+
+    def integration_sources(self):
+        with self.connect() as db:
+            return [
+                dict(row)
+                for row in db.execute("SELECT * FROM integration_sources ORDER BY tool, home")
+            ]
 
     def seed_demo(self):
         """Explicit, repeatable sample loading; never pretend these are real sessions."""

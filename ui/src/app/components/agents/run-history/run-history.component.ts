@@ -6,6 +6,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { IntegrationStatusComponent } from '../integration-status/integration-status.component';
 import { Run } from './run.model';
 import { RunService } from './run.service';
 import { RunDetailComponent } from './run-detail/run-detail.component';
@@ -23,6 +24,7 @@ import { RunDurationPipe } from '../../../shared/pipes/run-duration.pipe';
     MatCardModule,
     MatProgressBarModule,
     RunDetailComponent,
+    IntegrationStatusComponent,
     RunDurationPipe,
   ],
   templateUrl: './run-history.component.html',

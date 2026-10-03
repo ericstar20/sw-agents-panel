@@ -1,0 +1,38 @@
+<details class="integration-status" (toggle)="$any($event.target).open && refresh()">
+  <summary>Agent configuration and paths</summary>
+  @if (loading()) {
+    <p>Checking local configuration…</p>
+  } @else if (error()) {
+    <p>Could not load configuration paths. Check the local API.</p>
+  } @else {
+    @for (integration of integrations(); track integration.paths['home'].path) {
+      <section>
+        <h3>
+          Codex · {{ integration.status === 'detected' ? 'Folder detected' : 'Folder not found' }}
+        </h3>
+        <p>
+          Configured model: {{ integration.configured_model ?? 'Unknown' }} · Provider:
+          {{ integration.configured_provider ?? 'Not explicitly configured' }}
+        </p>
+        <p>
+          {{ integration.session_file_count ?? 'Unknown' }} session files found. Analytics
+          collection is not connected yet.
+        </p>
+        <dl>
+          @for (entry of integration.paths | keyvalue; track entry.key) {
+            <div>
+              <dt>{{ entry.key.replaceAll('_', ' ') }}</dt>
+              <dd>
+                {{ entry.value.path }}
+                <span>{{ entry.value.exists ? 'Found' : 'Not found' }}</span>
+              </dd>
+            </div>
+          }
+        </dl>
+        @for (error of integration.errors; track error) {
+          <p>{{ error }}</p>
+        }
+      </section>
+    }
+  }
+</details>

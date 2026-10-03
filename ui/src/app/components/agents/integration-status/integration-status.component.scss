@@ -1,0 +1,40 @@
+.integration-status {
+  margin: 16px 0;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 12px;
+}
+summary {
+  cursor: pointer;
+  color: var(--text);
+}
+summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+section {
+  padding-top: 12px;
+}
+h3 {
+  color: var(--text);
+}
+dl {
+  margin-bottom: 0;
+}
+dl div {
+  margin: 10px 0;
+}
+dt {
+  text-transform: capitalize;
+  color: var(--text);
+}
+dd {
+  margin: 3px 0;
+  overflow-wrap: anywhere;
+}
+dd span {
+  margin-left: 8px;
+  color: var(--accent);
+}
