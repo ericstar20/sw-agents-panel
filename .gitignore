@@ -1,2 +1,9 @@
 .DS_Store
 .vscode/
+node_modules/
+.angular/
+dist/
+data/
+__pycache__/
+*.pyc
+.venv/

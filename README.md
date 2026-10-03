@@ -1,5 +1,57 @@
 # Local AI Agents Dashboard
 
+## Run the Foundation
+
+Requires Node.js 20.19+ and Python 3.12+. Install the UI dependencies, then start both services:
+
+```sh
+npm --prefix ui ci
+npm start
+```
+
+Open http://127.0.0.1:4200. The Python API listens on port 8765 and SQLite data lives in `data/dashboard.sqlite3`. The dashboard starts empty; live CLI collection is not connected yet.
+
+To load a clearly labeled sample run, use `npm start -- --demo`. Sample data persists across restarts. Stop both services with Ctrl+C.
+
+```sh
+npm test       # SQLite persistence tests
+npm run build # Angular production build
+```
+
+Source folders: `api/` contains Python persistence and API code; `ui/` contains the Angular dashboard with Angular Material. Foblex Flow is reserved for the planned workflow view.
+
+## Angular Structure
+
+The UI follows the organization of `sw-app-admin`, using standalone components:
+
+```text
+ui/src/app/
+  app.component.*       # Root router outlet
+  app.config.ts         # Application providers
+  app.routes.ts         # Routes and lazy feature loading
+  layouts/main-layout/  # Navigation and page shell
+  components/agents/
+    run-history/        # Feature component, model, service, and styles
+      run-detail/       # Run details presentation component
+  shared/
+    pipes/              # Reusable display transformations
+    styles/             # Shared SCSS mixins
+  @theme/               # Material theme and system color tokens
+```
+
+Keep feature API calls in services, types in model files, and each component's template and SCSS beside its TypeScript. Add app-wide services under `core/` when needed.
+
+For formatting, install the Python development tool once:
+
+```sh
+python3 -m venv .venv
+.venv/bin/python -m pip install -r api/requirements-dev.txt
+npm run format
+npm run format:check
+```
+
+Prettier formats TypeScript, Angular HTML, JSON, SCSS, and Markdown; Ruff formats Python.
+
 ## Overview
 
 | Item   | Details                                                                                     |
@@ -93,7 +145,7 @@
 
 | Component      | Specification                                                                  |
 | -------------- | ------------------------------------------------------------------------------ |
-| UI             | Angular.                                                                       |
+| UI             | Angular with [Angular Material](https://material.angular.dev/).                |
 | Workflow UI    | [Foblex Flow](https://flow.foblex.com/) (`@foblex/flow`).                      |
 | Controller     | Python or Java, depending on which is better suited to working with AI agents. |
 | Payload format | JSON.                                                                          |

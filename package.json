@@ -1,0 +1,11 @@
+{
+  "name": "sw-agents-panel",
+  "private": true,
+  "scripts": {
+    "start": "python3 scripts/dev.py",
+    "build": "npm --prefix ui run build",
+    "test": "python3 -m unittest discover -s api/tests -v",
+    "format": "ui/node_modules/.bin/prettier --write . && .venv/bin/python -m ruff format api scripts",
+    "format:check": "ui/node_modules/.bin/prettier --check . && .venv/bin/python -m ruff format --check api scripts"
+  }
+}

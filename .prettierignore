@@ -1,0 +1,7 @@
+.git/
+.venv/
+ui/node_modules/
+ui/.angular/
+ui/dist/
+data/
+**/__pycache__/
