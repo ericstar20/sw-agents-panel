@@ -47,9 +47,23 @@ aside {
   letter-spacing: 1.5px;
   margin: 48px 0 18px;
 }
+nav {
+  display: grid;
+  gap: 4px;
+}
+.nav-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 nav a {
   width: 100%;
   justify-content: flex-start;
+  height: 38px;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: normal;
 }
 nav .active {
   background: var(--soft);
@@ -112,8 +126,20 @@ footer {
     border-right: 0;
     border-bottom: 1px solid var(--line);
   }
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 14px;
+    gap: 4px;
+  }
+  nav a {
+    width: auto;
+    padding: 0 10px;
+  }
+  .nav-label {
+    gap: 7px;
+  }
   .workspace,
-  nav,
   .aside-bottom {
     display: none;
   }

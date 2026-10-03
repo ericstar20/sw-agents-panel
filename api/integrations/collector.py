@@ -57,8 +57,20 @@ class SessionCollector:
             ):
                 offset = checkpoint["offset"]
                 state = json.loads(checkpoint["state"])
-            if offset == stat.st_size:
+            needs_relationships = not state.get("relationships_scanned")
+            if offset == stat.st_size and not needs_relationships:
                 return
+            if state.get("id") and needs_relationships:
+                with path.open("rb") as stream:
+                    try:
+                        metadata = json.loads(stream.readline())
+                        if isinstance(metadata, dict) and metadata.get("type") == "session_meta":
+                            payload = metadata.get("payload")
+                            if isinstance(payload, dict):
+                                self.read_relationship(state, payload, home)
+                    except (ValueError, UnicodeDecodeError):
+                        pass
+                state["relationships_scanned"] = True
             events = []
             with path.open("rb") as stream:
                 stream.seek(offset)
@@ -90,6 +102,8 @@ class SessionCollector:
             if not isinstance(session_id, str):
                 return
             key = hashlib.sha256(f"{Path(home).resolve()}:{session_id}".encode()).hexdigest()
+            SessionCollector.read_relationship(state, payload, home)
+            state["relationships_scanned"] = True
             state.update(
                 id=f"codex-{key}",
                 agent_id=f"codex-agent-{key}",
@@ -149,3 +163,13 @@ class SessionCollector:
                             },
                         )
                     )
+
+    @staticmethod
+    def read_relationship(state, payload, home):
+        source = payload.get("source")
+        subagent = source.get("subagent") if isinstance(source, dict) else None
+        spawn = subagent.get("thread_spawn") if isinstance(subagent, dict) else None
+        parent = spawn.get("parent_thread_id") if isinstance(spawn, dict) else None
+        if isinstance(parent, str):
+            parent_key = hashlib.sha256(f"{Path(home).resolve()}:{parent}".encode()).hexdigest()
+            state["parent_id"] = f"codex-{parent_key}"

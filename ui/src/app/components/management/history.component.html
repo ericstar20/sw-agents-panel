@@ -1,0 +1,135 @@
+<h1>History</h1>
+<p>Browse recorded sessions and manage finished history.</p>
+@if (error()) {
+  <p role="alert">{{ error() }}</p>
+}
+@if (message()) {
+  <p role="status">{{ message() }}</p>
+}
+<section class="panel">
+  <form class="filters" (ngSubmit)="load(true)">
+    <label>
+      Agent
+      <select name="agent" [(ngModel)]="filters['agent_id']">
+        <option value="">All agents</option>
+        @for (agent of data()?.agents; track agent.id) {
+          <option [value]="agent.id">{{ agent.name }}</option>
+        }
+      </select>
+    </label>
+    @for (field of ['provider', 'model', 'project']; track field) {
+      <label>
+        {{ field }}
+        <select [name]="field" [(ngModel)]="filters[field]">
+          <option value="">All</option>
+          @for (value of data()?.options?.[field]; track value) {
+            <option [value]="value">{{ value }}</option>
+          }
+        </select>
+      </label>
+    }
+    <label>
+      Status
+      <select name="status" [(ngModel)]="filters['status']">
+        <option value="">All</option>
+        @for (status of ['running', 'idle', 'completed', 'interrupted', 'failed']; track status) {
+          <option [value]="status">{{ status }}</option>
+        }
+      </select>
+    </label>
+    <label>
+      From
+      <input type="date" name="from" [(ngModel)]="filters['from']" />
+    </label>
+    <label>
+      Through
+      <input type="date" name="to" [(ngModel)]="filters['to']" />
+    </label>
+    <button mat-button class="primary-action" [disabled]="busy()">Apply</button>
+  </form>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Agent</th>
+          <th>Project</th>
+          <th>Provider / model</th>
+          <th>Status</th>
+          <th>Started</th>
+          <th>Input / output tokens</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (run of data()?.items; track run.id) {
+          <tr>
+            <td>
+              <button mat-button (click)="open(run.id)">{{ run.agent_name }}</button>
+              @if (run.sample) {
+                <small>Sample</small>
+              }
+            </td>
+            <td>{{ run.project }}</td>
+            <td>
+              {{ run.provider ?? 'Unknown' }}
+              <small>{{ run.model ?? 'Unknown' }}</small>
+            </td>
+            <td>{{ run.status }}</td>
+            <td>{{ run.started_at | date: 'medium' }}</td>
+            <td>
+              {{ run.input_tokens === null ? 'Unknown' : (run.input_tokens | number) }} /
+              {{ run.output_tokens === null ? 'Unknown' : (run.output_tokens | number) }}
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="6">No matching runs.</td></tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <div class="controls">
+    <button mat-button [disabled]="page === 1 || busy()" (click)="changePage(-1)">Previous</button>
+    <span>Page {{ page }} · {{ data()?.total ?? 0 }} matching runs</span>
+    <button
+      mat-button
+      [disabled]="page * 25 >= (data()?.total ?? 0) || busy()"
+      (click)="changePage(1)"
+    >
+      Next
+    </button>
+  </div>
+</section>
+@if (selected(); as run) {
+  <app-run-detail [run]="run" (closed)="selected.set(null)" />
+}
+<section class="panel padded">
+  <h2>Clean up finished history</h2>
+  <p>
+    Active and idle sessions, agent registrations, settings, and skills are preserved. Deleted runs
+    also leave provider comparisons. Local source session files remain untouched.
+  </p>
+  <div class="controls">
+    <label>
+      Keep the latest days
+      <input type="number" min="1" max="36500" [(ngModel)]="days" (ngModelChange)="cancel()" />
+    </label>
+    <button mat-button [disabled]="busy()" (click)="showPreview()">Preview older history</button>
+    <button mat-button [disabled]="busy()" (click)="showPreview(true)">
+      Preview all finished history
+    </button>
+  </div>
+  @if (preview(); as p) {
+    <div class="confirmation" role="status">
+      <p>Delete {{ p.runs }} finished runs and {{ p.events }} events.</p>
+      <p>Cutoff: {{ p.cutoff ?? 'All finished history' }}. Deletion cannot be undone.</p>
+      <button
+        mat-button
+        class="danger-action"
+        [disabled]="busy() || p.runs === 0"
+        (click)="confirm()"
+      >
+        Confirm deletion
+      </button>
+      <button mat-button [disabled]="busy()" (click)="cancel()">Cancel</button>
+    </div>
+  }
+</section>

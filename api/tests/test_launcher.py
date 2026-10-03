@@ -1,13 +1,15 @@
 import json
+import io
+import signal
 import os
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
-from scripts.dashboard import launch_settings, ensure_dashboard
+from scripts.dashboard import launch_settings, ensure_dashboard, health
 from scripts.install_terminal import install, ROOT
 
 
@@ -114,3 +116,76 @@ class LauncherTests(unittest.TestCase):
                 text=True,
             )
             self.assertEqual(result.stdout.strip(), "codex-help")
+
+    def health_response(self, **overrides):
+        data = {
+            "app": "sw-agents-panel",
+            "project_root": str(ROOT),
+            "serves_ui": True,
+            "backend_revision": "current",
+            "process_id": 12345,
+        }
+        data.update(overrides)
+        return io.BytesIO(json.dumps(data).encode())
+
+    def test_current_service_is_reused_without_stopping_process(self):
+        opener = Mock()
+        opener.open.return_value = self.health_response()
+        with (
+            patch("scripts.dashboard.build_opener", return_value=opener),
+            patch("scripts.dashboard.backend_revision", return_value="current"),
+            patch("scripts.dashboard.os.kill") as kill,
+        ):
+            self.assertTrue(health(restart_stale=True))
+            kill.assert_not_called()
+
+    def test_stale_dashboard_is_stopped_before_reusing_fixed_port(self):
+        from urllib.error import URLError
+
+        opener = Mock()
+        opener.open.side_effect = [
+            self.health_response(backend_revision="old"),
+            URLError("service stopped"),
+        ]
+        with (
+            patch("scripts.dashboard.build_opener", return_value=opener),
+            patch("scripts.dashboard.backend_revision", return_value="current"),
+            patch("scripts.dashboard.os.kill") as kill,
+        ):
+            self.assertFalse(health(restart_stale=True))
+            kill.assert_called_once_with(12345, signal.SIGTERM)
+
+    def test_unrelated_service_is_never_stopped(self):
+        opener = Mock()
+        opener.open.return_value = self.health_response(app="another-app")
+        with (
+            patch("scripts.dashboard.build_opener", return_value=opener),
+            patch("scripts.dashboard.os.kill") as kill,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "different service"):
+                health(restart_stale=True)
+            kill.assert_not_called()
+
+    def test_legacy_service_without_process_identity_is_not_stopped(self):
+        opener = Mock()
+        opener.open.return_value = self.health_response(backend_revision=None, process_id=None)
+        with (
+            patch("scripts.dashboard.build_opener", return_value=opener),
+            patch("scripts.dashboard.backend_revision", return_value="current"),
+            patch("scripts.dashboard.os.kill") as kill,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "Restart that dashboard once"):
+                health(restart_stale=True)
+            kill.assert_not_called()
+
+    def test_explicit_restart_stops_current_project_service(self):
+        opener = Mock()
+        from urllib.error import URLError
+
+        opener.open.side_effect = [self.health_response(), URLError("stopped")]
+        with (
+            patch("scripts.dashboard.build_opener", return_value=opener),
+            patch("scripts.dashboard.os.kill") as kill,
+        ):
+            self.assertFalse(health(force_restart=True))
+            kill.assert_called_once_with(12345, signal.SIGTERM)

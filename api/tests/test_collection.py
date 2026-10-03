@@ -117,3 +117,74 @@ class CollectionTests(unittest.TestCase):
         self.scan()
         self.assertEqual(len(self.store.agents()), 2)
         self.assertEqual({run["status"] for run in self.store.runs()}, {"idle", "interrupted"})
+
+    def test_reported_parent_relationship_and_cleanup_replay(self):
+        self.start()
+        self.append("event_msg", {"type": "task_complete"})
+        self.scan()
+        parent = self.store.runs()[0]["id"]
+        child = self.file.parent / "child.jsonl"
+        child.write_text(
+            json.dumps(
+                {
+                    "type": "session_meta",
+                    "timestamp": "2026-10-03T20:00:00Z",
+                    "payload": {
+                        "id": "child",
+                        "source": {"subagent": {"thread_spawn": {"parent_thread_id": "session-1"}}},
+                    },
+                }
+            )
+            + "\n"
+        )
+        self.scan()
+        graph = self.store.workflow()
+        self.assertEqual(len(graph["nodes"]), 2)
+        self.assertEqual(graph["links"][0]["source_id"], parent)
+        preview = self.store.cleanup_preview()
+        self.store.cleanup(preview["cutoff"], preview["token"])
+        self.append(
+            "event_msg",
+            {"type": "token_count", "info": {"total_token_usage": {"input_tokens": 999}}},
+        )
+        self.scan()
+        self.assertIsNone(self.store.detail(parent))
+        archive = self.home / "archived_sessions"
+        archive.mkdir()
+        self.file.rename(archive / self.file.name)
+        self.scan()
+        self.assertIsNone(self.store.detail(parent))
+        self.assertEqual(self.store.workflow()["links"], [])
+
+    def test_relationship_backfill_for_existing_checkpoint(self):
+        self.start()
+        self.scan()
+        child = self.file.parent / "child.jsonl"
+        child.write_text(
+            json.dumps(
+                {
+                    "type": "session_meta",
+                    "timestamp": "2026-10-03T20:00:00Z",
+                    "payload": {
+                        "id": "child",
+                        "source": {"subagent": {"thread_spawn": {"parent_thread_id": "session-1"}}},
+                    },
+                }
+            )
+            + "\n"
+        )
+        self.scan()
+        with self.store.connect() as db:
+            row = db.execute(
+                "SELECT state FROM collection_checkpoints WHERE path=?", (str(child),)
+            ).fetchone()
+            state = json.loads(row["state"])
+            state.pop("relationships_scanned")
+            state.pop("parent_id")
+            db.execute(
+                "UPDATE collection_checkpoints SET state=? WHERE path=?",
+                (json.dumps(state), str(child)),
+            )
+            db.execute("DELETE FROM workflow_links")
+        self.scan()
+        self.assertEqual(len(self.store.workflow()["links"]), 1)

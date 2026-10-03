@@ -1,0 +1,83 @@
+<h1>Agent workflow</h1>
+<p>
+  Recorded delegation relationships: parent agent → spawned subagent. These links do not prove an
+  execution order or a blocking dependency.
+</p>
+<div class="controls workflow-toolbar">
+  <button
+    mat-icon-button
+    class="icon-action"
+    [disabled]="busy()"
+    (click)="load()"
+    aria-label="Refresh workflow"
+    matTooltip="Refresh"
+  >
+    <app-icon name="refresh" />
+  </button>
+  <button
+    mat-icon-button
+    class="icon-action"
+    (click)="fit()"
+    aria-label="Fit workflow to screen"
+    matTooltip="Fit to screen"
+  >
+    <app-icon name="fit" />
+  </button>
+  <span>Drag the canvas to pan; scroll to zoom. Select a run to inspect its details.</span>
+</div>
+@if (error()) {
+  <p role="alert">{{ error() }}</p>
+}
+@if (data().nodes.length) {
+  <div class="graph">
+    <f-flow fDraggable (fLoaded)="fit()">
+      <f-canvas fZoom>
+        @for (link of data().links; track link.source_id + link.target_id) {
+          <f-connection
+            [fSourceId]="link.source_id + '-out'"
+            [fTargetId]="link.target_id + '-in'"
+            [fReassignDisabled]="true"
+          />
+        }
+        @for (node of data().nodes; track node.id) {
+          <div class="node" fNode [fNodePosition]="positions()[node.id]">
+            <div fDragHandle>{{ node.agent_name }}</div>
+            <small>
+              {{ node.status }}
+              @if (node.sample) {
+                · Sample
+              }
+            </small>
+            <small>{{ node.model ?? 'Unknown model' }}</small>
+            <button mat-button (click)="open(node.id)">Inspect run</button>
+            <div
+              class="port source"
+              fConnector
+              [fConnectorId]="node.id + '-out'"
+              fConnectorType="source"
+              fConnectorConnectableSide="right"
+            ></div>
+            <div
+              class="port target"
+              fConnector
+              [fConnectorId]="node.id + '-in'"
+              fConnectorType="target"
+              fConnectorConnectableSide="left"
+            ></div>
+          </div>
+        }
+      </f-canvas>
+    </f-flow>
+  </div>
+} @else {
+  <section class="panel padded">
+    <h2>No recorded agent relationships</h2>
+    <p>
+      Delegated Codex sessions appear here when their metadata reports a parent session and both
+      sessions are imported. Independent sessions remain in History.
+    </p>
+  </section>
+}
+@if (selected(); as run) {
+  <app-run-detail [run]="run" (closed)="selected.set(null)" />
+}

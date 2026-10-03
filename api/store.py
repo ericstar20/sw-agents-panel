@@ -1,10 +1,11 @@
 """SQLite persistence; collection adapters will write through this boundary."""
 
 import json
+import hashlib
 from contextlib import contextmanager
 import sqlite3
 from pathlib import Path
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 
 class Store:
@@ -26,6 +27,10 @@ class Store:
                 CREATE TABLE IF NOT EXISTS events (
                     id INTEGER PRIMARY KEY, run_id TEXT NOT NULL REFERENCES runs(id),
                     timestamp TEXT NOT NULL, type TEXT NOT NULL, payload TEXT NOT NULL);
+                CREATE TABLE IF NOT EXISTS deleted_runs (id TEXT PRIMARY KEY);
+                CREATE TABLE IF NOT EXISTS workflow_links (
+                    source_id TEXT NOT NULL, target_id TEXT NOT NULL,
+                    kind TEXT NOT NULL, PRIMARY KEY(source_id, target_id, kind));
                 CREATE TABLE IF NOT EXISTS integration_sources (
                     tool TEXT NOT NULL, home TEXT NOT NULL,
                     project TEXT, profile TEXT, PRIMARY KEY (tool, home));
@@ -95,6 +100,18 @@ class Store:
     @staticmethod
     def save_session(db, state, events):
         """Upsert session analytics in the same transaction as its import checkpoint."""
+        if db.execute("SELECT 1 FROM deleted_runs WHERE id=?", (state["id"],)).fetchone():
+            return
+        parent = state.get("parent_id")
+        if (
+            parent
+            and parent != state["id"]
+            and not db.execute("SELECT 1 FROM deleted_runs WHERE id=?", (parent,)).fetchone()
+        ):
+            db.execute(
+                "INSERT OR IGNORE INTO workflow_links VALUES (?, ?, ?)",
+                (parent, state["id"], "delegation"),
+            )
         db.execute(
             "INSERT OR IGNORE INTO agents VALUES (?, ?, 'codex', 'third-party', 0)",
             (state["agent_id"], state["name"]),
@@ -174,3 +191,149 @@ class Store:
                         ),
                     ),
                 )
+
+    def history(self, filters):
+        clauses, values = [], []
+        for field in ("agent_id", "provider", "model", "status", "project"):
+            if filters.get(field):
+                clauses.append(f"r.{field}=?")
+                values.append(filters[field])
+        for key, operator in (("from", ">="), ("to", "<=")):
+            if filters.get(key):
+                datetime.strptime(filters[key], "%Y-%m-%d")
+                clauses.append(f"substr(r.started_at,1,10){operator}?")
+                values.append(filters[key])
+        where = " WHERE " + " AND ".join(clauses) if clauses else ""
+        page = max(1, int(filters.get("page", 1)))
+        with self.connect() as db:
+            total = db.execute("SELECT count(*) FROM runs r" + where, values).fetchone()[0]
+            rows = db.execute(
+                "SELECT r.*, a.name agent_name, a.tool, a.ownership FROM runs r JOIN agents a ON a.id=r.agent_id"
+                + where
+                + " ORDER BY started_at DESC, r.id LIMIT 25 OFFSET ?",
+                [*values, (page - 1) * 25],
+            )
+            options = {
+                field: [
+                    row[0]
+                    for row in db.execute(
+                        f"SELECT DISTINCT {field} FROM runs WHERE {field} IS NOT NULL ORDER BY {field}"
+                    )
+                ]
+                for field in ("provider", "model", "project")
+            }
+            return {
+                "items": [dict(row) for row in rows],
+                "total": total,
+                "page": page,
+                "options": options,
+                "agents": self.agents(),
+            }
+
+    def storage(self):
+        with self.connect() as db:
+            threshold = int(
+                db.execute(
+                    "SELECT value FROM settings WHERE key='storage_warning_bytes'"
+                ).fetchone()[0]
+            )
+            counts = {
+                table: db.execute(f"SELECT count(*) FROM {table}").fetchone()[0]
+                for table in ("runs", "events")
+            }
+            oldest = db.execute("SELECT min(started_at) FROM runs").fetchone()[0]
+        sizes = {
+            name: path.stat().st_size if path.exists() else 0
+            for name, path in (
+                ("database", self.path),
+                ("wal", Path(str(self.path) + "-wal")),
+                ("journal", Path(str(self.path) + "-journal")),
+            )
+        }
+        total = sum(sizes.values())
+        return {
+            **sizes,
+            **counts,
+            "oldest": oldest,
+            "total_bytes": total,
+            "warning_bytes": threshold,
+            "warning": total >= threshold,
+        }
+
+    def update_settings(self, value):
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, int)
+            or value < 1000000
+            or value > 1000000000000
+        ):
+            raise ValueError("Threshold must be between 1 MB and 1,000,000 MB")
+        with self.connect() as db:
+            db.execute(
+                "UPDATE settings SET value=? WHERE key='storage_warning_bytes'", (str(value),)
+            )
+        return self.storage()
+
+    def cleanup_preview(self, days=None, cutoff=None):
+        if days is not None:
+            if isinstance(days, bool) or not isinstance(days, int) or days < 1 or days > 36500:
+                raise ValueError("Retention must be between 1 and 36500 days")
+            cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        if cutoff is not None:
+            datetime.fromisoformat(cutoff.replace("Z", "+00:00"))
+        where = "status IN ('completed','failed','interrupted') AND finished_at IS NOT NULL"
+        values = []
+        if cutoff:
+            where += " AND julianday(finished_at)<julianday(?)"
+            values.append(cutoff)
+        with self.connect() as db:
+            ids = [
+                row[0]
+                for row in db.execute("SELECT id FROM runs WHERE " + where + " ORDER BY id", values)
+            ]
+            events = db.execute(
+                "SELECT count(*) FROM events WHERE run_id IN (SELECT id FROM runs WHERE "
+                + where
+                + ")",
+                values,
+            ).fetchone()[0]
+        token = hashlib.sha256(json.dumps([cutoff, ids, events]).encode()).hexdigest()
+        return {"cutoff": cutoff, "runs": len(ids), "events": events, "token": token, "ids": ids}
+
+    def cleanup(self, cutoff, token):
+        preview = self.cleanup_preview(cutoff=cutoff)
+        if token != preview["token"]:
+            raise ValueError("History changed. Preview cleanup again before confirming")
+        with self.connect() as db:
+            for run_id in preview["ids"]:
+                db.execute("INSERT OR IGNORE INTO deleted_runs VALUES (?)", (run_id,))
+                db.execute("DELETE FROM events WHERE run_id=?", (run_id,))
+                db.execute(
+                    "DELETE FROM workflow_links WHERE source_id=? OR target_id=?", (run_id, run_id)
+                )
+                db.execute("DELETE FROM runs WHERE id=?", (run_id,))
+        return {"deleted_runs": preview["runs"], "deleted_events": preview["events"]}
+
+    def compact(self):
+        with self.connect() as db:
+            db.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            db.execute("VACUUM")
+        return self.storage()
+
+    def workflow(self):
+        with self.connect() as db:
+            links = [
+                dict(row)
+                for row in db.execute(
+                    "SELECT l.* FROM workflow_links l JOIN runs s ON s.id=l.source_id JOIN runs t ON t.id=l.target_id"
+                )
+            ]
+            ids = {link[key] for link in links for key in ("source_id", "target_id")}
+            nodes = [
+                dict(row)
+                for row in db.execute(
+                    "SELECT r.*, a.name agent_name, a.tool, a.ownership FROM runs r JOIN agents a ON a.id=r.agent_id ORDER BY started_at DESC"
+                )
+                if row["id"] in ids
+            ]
+        return {"nodes": nodes, "links": links}

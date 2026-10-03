@@ -13,6 +13,21 @@ export const routes: Routes = [
             (module) => module.RunHistoryComponent,
           ),
       },
+      {
+        path: 'history',
+        loadComponent: () =>
+          import('./components/management/history.component').then((m) => m.HistoryComponent),
+      },
+      {
+        path: 'settings',
+        loadComponent: () =>
+          import('./components/management/settings.component').then((m) => m.SettingsComponent),
+      },
+      {
+        path: 'workflow',
+        loadComponent: () =>
+          import('./components/management/workflow.component').then((m) => m.WorkflowComponent),
+      },
       { path: '', redirectTo: 'overview', pathMatch: 'full' },
     ],
   },

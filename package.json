@@ -6,6 +6,9 @@
     "build": "npm --prefix ui run build",
     "test": "python3 -m unittest discover -s api/tests -v",
     "format": "ui/node_modules/.bin/prettier --write . && .venv/bin/python -m ruff format api scripts",
-    "format:check": "ui/node_modules/.bin/prettier --check . && .venv/bin/python -m ruff format --check api scripts"
+    "format:check": "ui/node_modules/.bin/prettier --check . && .venv/bin/python -m ruff format --check api scripts",
+    "dashboard": "python3 scripts/dashboard.py",
+    "dashboard:restart": "python3 scripts/dashboard.py --restart",
+    "dashboard:stop": "python3 scripts/dashboard.py --stop"
   }
 }

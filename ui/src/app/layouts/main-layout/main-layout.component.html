@@ -7,7 +7,30 @@
   </a>
   <div class="workspace">PERSONAL WORKSPACE</div>
   <nav aria-label="Main navigation">
-    <a mat-button routerLink="/overview" routerLinkActive="active">▦ &nbsp; Overview</a>
+    <a mat-button routerLink="/overview" routerLinkActive="active">
+      <span class="nav-label">
+        <app-icon name="overview" />
+        Overview
+      </span>
+    </a>
+    <a mat-button routerLink="/history" routerLinkActive="active">
+      <span class="nav-label">
+        <app-icon name="history" />
+        History
+      </span>
+    </a>
+    <a mat-button routerLink="/workflow" routerLinkActive="active">
+      <span class="nav-label">
+        <app-icon name="workflow" />
+        Workflow
+      </span>
+    </a>
+    <a mat-button routerLink="/settings" routerLinkActive="active">
+      <span class="nav-label">
+        <app-icon name="settings" />
+        Settings
+      </span>
+    </a>
   </nav>
   <div class="aside-bottom">
     <span class="dot"></span>
@@ -18,9 +41,21 @@
 </aside>
 <main>
   <header>
-    <span>Workspace / Overview</span>
+    <span>Workspace</span>
     <mat-chip>Local dashboard</mat-chip>
   </header>
+  @if (storage(); as s) {
+    @if (s.warning) {
+      <p role="alert">
+        Storage uses {{ (s.total_bytes / 1000000).toFixed(2) }} MB and has reached your warning
+        threshold.
+        <a routerLink="/history">Manage history</a>
+        and
+        <a routerLink="/settings">reclaim disk space</a>
+        .
+      </p>
+    }
+  }
   <router-outlet />
   <footer>Local Agents · Angular + Python + SQLite</footer>
 </main>

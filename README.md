@@ -18,7 +18,7 @@ npm test       # SQLite persistence tests
 npm run build # Angular production build
 ```
 
-Source folders: `api/` contains Python persistence and API code; `ui/` contains the Angular dashboard with Angular Material. Foblex Flow is reserved for the planned workflow view.
+Source folders: `api/` contains Python persistence and API code; `ui/` contains the Angular dashboard with Angular Material. Foblex Flow powers the workflow view for reported parent/subagent relationships.
 
 ## Open the Dashboard When Codex Starts
 
@@ -30,7 +30,9 @@ source ~/.zshrc
 codex
 ```
 
-The installer appends a source line to `.zshrc` and preserves a backup at `.zshrc.sw-agents-panel.bak`. New terminals load it automatically. Existing terminals need the `source` command above. The hook starts or reuses the dashboard at http://127.0.0.1:8766/overview, opens it in your default browser, and invokes the original Codex CLI with your arguments and exit status preserved. Help/version and common non-interactive commands bypass dashboard startup. A dashboard failure prints a warning and still starts Codex.
+The installer appends a source line to `.zshrc` and preserves a backup at `.zshrc.sw-agents-panel.bak`. New terminals load it automatically. Existing terminals need the `source` command above. The hook starts or reuses the dashboard at http://127.0.0.1:48763/overview, opens it in your default browser, and invokes the original Codex CLI with your arguments and exit status preserved. Help/version and common non-interactive commands bypass dashboard startup. A dashboard failure prints a warning and still starts Codex.
+
+Run `npm run dashboard` to open the built dashboard at the fixed address `http://127.0.0.1:48763/overview`. The launcher reuses the matching service and restarts it after backend code changes. Another application occupying port 48763 produces a clear conflict error; it is never killed and the port never changes. UI rebuilds are served immediately after refreshing the browser.
 
 Terminal mode uses the built Angular UI and Python API in one background service; `npm start` remains the development workflow on ports 4200/8765. Rebuild after UI changes. Service output is in `data/dashboard.log`.
 
@@ -171,3 +173,23 @@ Prettier formats TypeScript, Angular HTML, JSON, SCSS, and Markdown; Ruff format
 ## Open Questions
 
 No questions listed yet.
+
+## History, Storage, and Workflow
+
+Open **History** for paginated sessions with agent, provider, model, status, project, and inclusive date filters. Cleanup can remove all finished sessions or those finished before a selected retention cutoff (7 days by default). Preview shows the exact cutoff and affected run/event counts; confirmation is required. Active and idle sessions, agent registrations, settings, skills, and source JSONL files are preserved. Deleted session IDs are suppressed from subsequent imports, including archived copies. Deletion removes related events and workflow links and the runs' contribution to future comparisons. Export and automatic retention remain pending.
+
+**Settings** shows database, WAL/journal, run/event counts, and oldest recorded run. The storage warning threshold defaults to 100 MB and is saved in SQLite. Warnings appear throughout the dashboard and link to History and Settings. Compaction pauses collection requests while SQLite reclaims disk space; collection resumes afterward.
+
+**Workflow** uses Foblex Flow with pan, zoom, fit-to-screen, and run inspection. The collector recognizes reported Codex `source.subagent.thread_spawn.parent_thread_id` metadata and draws parent-to-subagent delegation links when both sessions exist. Relationships are metadata evidence, not proof of a blocking dependency or execution order. Independent sessions stay in History. Unsupported relationship formats are ignored; no relationships are inferred from timing or project paths.
+
+## Project-local Dashboard Process
+
+The dashboard uses the fixed, less common port **48763**. Nothing is installed into macOS startup or service management. The process starts only when requested, with its database, lock, and logs under this project's `data/` directory.
+
+```sh
+npm run dashboard          # Start or reuse, then open the browser
+npm run dashboard:restart  # Stop this project's dashboard and start it again
+npm run dashboard:stop     # Stop this project's dashboard
+```
+
+Backend changes trigger a restart on the next launch. Only a dashboard reporting this checkout's identity can be terminated; an unrelated app using the port produces a conflict error. The address stays `http://127.0.0.1:48763/overview`. `npm start` remains the separate development workflow on ports 4200/8765.

@@ -1,0 +1,55 @@
+<h1>Settings</h1>
+<p>Manage local storage.</p>
+@if (error()) {
+  <p role="alert">{{ error() }}</p>
+}
+@if (message()) {
+  <p role="status">{{ message() }}</p>
+}
+@if (storage(); as s) {
+  <section class="panel padded">
+    <h2>Storage overview</h2>
+    <dl>
+      <dt>Total storage</dt>
+      <dd>{{ s.total_bytes / 1000000 | number: '1.2-2' }} MB</dd>
+      <dt>Database</dt>
+      <dd>{{ s.database / 1000000 | number: '1.2-2' }} MB</dd>
+      <dt>Journal / WAL</dt>
+      <dd>{{ (s.wal + s.journal) / 1000000 | number: '1.2-2' }} MB</dd>
+      <dt>Runs / events</dt>
+      <dd>{{ s.runs }} / {{ s.events }}</dd>
+      <dt>Oldest run</dt>
+      <dd>{{ s.oldest ? (s.oldest | date: 'medium') : 'No history' }}</dd>
+    </dl>
+    @if (s.warning) {
+      <p role="alert">
+        Storage has reached the warning threshold.
+        <a routerLink="/history">Delete older history</a>
+        , then compact to reclaim disk space.
+      </p>
+    }
+    <form class="controls" (ngSubmit)="save()">
+      <label>
+        Storage warning threshold (MB)
+        <input
+          type="number"
+          name="threshold"
+          min="1"
+          max="1000000"
+          required
+          [(ngModel)]="threshold"
+        />
+      </label>
+      <button mat-button class="primary-action" [disabled]="busy()">Save</button>
+    </form>
+    <p>Default: 100 MB. A warning never deletes history automatically.</p>
+  </section>
+  <section class="panel padded">
+    <h2>Reclaim disk space</h2>
+    <p>
+      After deleting history, compact the database. Collection pauses while compaction runs and
+      resumes afterward.
+    </p>
+    <button mat-button [disabled]="busy()" (click)="compact()">Compact database</button>
+  </section>
+}
